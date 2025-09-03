@@ -11,6 +11,7 @@ const logger: RequestHandler = (req, res, next) => {
 	next()
 }
 
+app.use('/', express.json())  // express kan hantera body
 app.use('/', logger)
 app.use('/fruits', fruitsRouter)
 
