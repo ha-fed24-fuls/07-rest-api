@@ -16,7 +16,7 @@ const FruitSchema = z.object({
 	price: z.number()
 })
 
-const data: Fruit[] = [
+let data: Fruit[] = [
 	{ id: 'q1', name: 'purjolök', price: 12 },
 	{ id: 'q2', name: 'banan', price: 77 },
 	{ id: 'q3', name: 'melon', price: 20 },
@@ -24,10 +24,10 @@ const data: Fruit[] = [
 router.get('/', (req, res) => {
 	res.send(data)
 })
-interface Params {
+interface IdParam {
 	id: string;
 }
-router.get('/:id', (req: Request<Params>, res: Response<Fruit>) => {
+router.get('/:id', (req: Request<IdParam>, res: Response<Fruit>) => {
 	const id: string = req.params.id
 	const maybeFruit: Fruit | undefined = data.find(fruit => fruit.id === id)
 	// Två möjligheter: antingen finns frukten med "id" eller inte
@@ -52,6 +52,28 @@ router.post('/', (req: Request<{}, void, Fruit>, res) => {
 	}
 })
 
+
+
+router.delete('/:id', (req: Request<IdParam>, res: Response<void>) => {
+	const id: string = req.params.id
+	const maybeFruit: Fruit | undefined = data.find(fruit => fruit.id === id)
+
+	if( maybeFruit ) {
+		data = data.filter(fruit => fruit.id !== id)
+		res.sendStatus(200)  // 200 OK
+	} else {
+		res.sendStatus(404)  // 404 Not found, det fanns ingen frukt med detta id
+	}
+})
+
+
+// Hur löser man PUT?
+// Använd URL-parameter för att välja ut vilken frukt som ska ändras
+// Använd BODY för att skicka det nya objektet som vi ska ersätta det gamla med
+// Möjliga resultat:
+// 200 om allt är grönt
+// 400 - om body inte är ett frukt-objekt
+// 404 - om man skriver ett id som det inte finns en frukt för
 
 
 export default router
