@@ -1,71 +1,70 @@
-import express from 'express'
-import type { Request, Response, Router } from 'express'
-import * as z from 'zod'
+import express from "express";
+import type { Request, Response, Router } from "express";
+import * as z from "zod";
 
-const router: Router = express.Router()
+const router: Router = express.Router();
 
 interface Fruit {
-	id: string;
-	name: string;
-	price: number;
+  id: string;
+  name: string;
+  price: number;
 }
+
+type ErrorRes = { error: string };
+
 // TODO: lägg till striktare regler. T.ex minst två tecken i namnet, inga negativa priser osv.
 const FruitSchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	price: z.number()
-})
+  id: z.string(),
+  name: z.string(),
+  price: z.number(),
+});
 
 let data: Fruit[] = [
-	{ id: 'q1', name: 'purjolök', price: 12 },
-	{ id: 'q2', name: 'banan', price: 77 },
-	{ id: 'q3', name: 'melon', price: 20 },
-]
-router.get('/', (req, res) => {
-	res.send(data)
-})
+  { id: "q1", name: "purjolök", price: 12 },
+  { id: "q2", name: "banan", price: 77 },
+  { id: "q3", name: "melon", price: 20 },
+];
+
+router.get("/", (req, res) => {
+  res.send(data);
+});
 interface IdParam {
-	id: string;
+  id: string;
 }
-router.get('/:id', (req: Request<IdParam>, res: Response<Fruit>) => {
-	const id: string = req.params.id
-	const maybeFruit: Fruit | undefined = data.find(fruit => fruit.id === id)
-	// Två möjligheter: antingen finns frukten med "id" eller inte
-	if( maybeFruit ) {
-		res.send(maybeFruit)   // status 200 OK
 
-	} else {
-		res.sendStatus(404)  // 404 Not Found
-	}
-})
+router.get("/:id", (req: Request<IdParam>, res: Response<Fruit>) => {
+  const id: string = req.params.id;
+  const maybeFruit: Fruit | undefined = data.find((fruit) => fruit.id === id);
+  // Två möjligheter: antingen finns frukten med "id" eller inte
+  if (maybeFruit) {
+    res.send(maybeFruit); // status 200 OK
+  } else {
+    res.sendStatus(404); // 404 Not Found
+  }
+});
 
+router.post("/", (req: Request<{}, void, Fruit>, res) => {
+  // Vi vet inte vad vi faktiskt får i body - måste validera det
+  try {
+    let newFruit: Fruit = FruitSchema.parse(req.body);
+    data.push(newFruit);
+    res.sendStatus(201); // 201 Created, resurs skapad på servern
+  } catch (error) {
+    res.sendStatus(400); // 400 Bad request, dåligt utformat request eftersom det inte är ett korrekt frukt-objekt
+  }
+});
 
+router.delete("/:id", (req: Request<IdParam>, res: Response<void>) => {
+  const id: string = req.params.id;
+  const maybeFruit: Fruit | undefined = data.find((fruit) => fruit.id === id);
 
-router.post('/', (req: Request<{}, void, Fruit>, res) => {
-	// Vi vet inte vad vi faktiskt får i body - måste validera det
-	try {
-		let newFruit: Fruit = FruitSchema.parse(req.body)
-		data.push(newFruit)
-		res.sendStatus(201)  // 201 Created, resurs skapad på servern
-	} catch(error) {
-		res.sendStatus(400)  // 400 Bad request, dåligt utformat request eftersom det inte är ett korrekt frukt-objekt
-	}
-})
-
-
-
-router.delete('/:id', (req: Request<IdParam>, res: Response<void>) => {
-	const id: string = req.params.id
-	const maybeFruit: Fruit | undefined = data.find(fruit => fruit.id === id)
-
-	if( maybeFruit ) {
-		data = data.filter(fruit => fruit.id !== id)
-		res.sendStatus(200)  // 200 OK
-	} else {
-		res.sendStatus(404)  // 404 Not found, det fanns ingen frukt med detta id
-	}
-})
-
+  if (maybeFruit) {
+    data = data.filter((fruit) => fruit.id !== id);
+    res.sendStatus(200); // 200 OK
+  } else {
+    res.sendStatus(404); // 404 Not found, det fanns ingen frukt med detta id
+  }
+});
 
 // Hur löser man PUT?
 // Använd URL-parameter för att välja ut vilken frukt som ska ändras
@@ -74,6 +73,54 @@ router.delete('/:id', (req: Request<IdParam>, res: Response<void>) => {
 // 200 om allt är grönt
 // 400 - om body inte är ett frukt-objekt
 // 404 - om man skriver ett id som det inte finns en frukt för
+router.put(
+  "/:id",
+  (
+    req: Request<{ id: string }, Fruit | ErrorRes, Fruit>,
+    res: Response<Fruit | ErrorRes>
+  ) => {
+    const id = req.params.id;
 
+    const index = data.findIndex((fruit) => fruit.id === id);
 
-export default router
+    if (index === -1) {
+      return res.status(404).json({ error: "Fruit not found in the DB" });
+    }
+
+    let updated: Fruit;
+
+    try {
+      updated = FruitSchema.parse(req.body);
+    } catch (error) {
+      return res
+        .status(400)
+        .json({ error: "Invalid body or wrong data type." });
+    }
+
+    if (updated.id !== id) {
+      return res
+        .status(400)
+        .json({ error: "Body.id must match with id from the URL." });
+    }
+
+    // if (
+    //   data[index]?.id === updated.id &&
+    //   data[index]?.name === updated.name &&
+    //   data[index]?.price === updated.price
+    // ) {
+    //   // Identisk payload → inget att uppdatera
+    //   return res.sendStatus(204); // eller return res.status(200).json(updated);
+    // }
+
+    if (JSON.stringify(data[index]) === JSON.stringify(updated)) {
+      return res.sendStatus(204);
+    }
+
+    data[index] = updated;
+    console.log("updated.id och id: ", updated.id, id);
+
+    return res.status(200).json(updated);
+  }
+);
+
+export default router;
