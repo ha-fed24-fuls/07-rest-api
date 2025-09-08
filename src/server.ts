@@ -1,5 +1,6 @@
 import express from "express";
 import type { Express, RequestHandler } from "express";
+import cors from 'cors'
 import fruitsRouter from "./routes/fruits.js";
 
 const app: Express = express();
@@ -10,9 +11,17 @@ const logger: RequestHandler = (req, res, next) => {
   next();
 };
 
+app.use("/", cors())
 app.use("/", express.json()); // express kan hantera body
 app.use("/", logger);
+app.use("/", express.static('./static-frontend/'))
 app.use("/fruits", fruitsRouter);
+
+/* Don't do this!! Use express.static instead.
+app.get('/index.html', (req, res) => {
+  res.sendFile('path to my index.html')
+})
+*/
 
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}...`);

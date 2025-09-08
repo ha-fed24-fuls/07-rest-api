@@ -1,3 +1,13 @@
+# Du kan skriva kommentarer i .gitignore med hashtag #
+
+# Serverns JS-filer
 dist/
+
+# Nedladdade npm libraries (typescript, express, cors m.m.)
 node_modules/
+
+# Mac-datorer skräpar ner med sådana här filer överallt
 .DS_Store/
+
+# I ett React-projekt ska frontend-mappen också byggas och därmed vara med i den här filen. Men i detta kodexempel vill jag att exemplet på en frontend ska finnas med i git-repot. Därför är nästa rad kommenterad.
+# static-frontend/

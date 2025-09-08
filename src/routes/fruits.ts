@@ -48,7 +48,7 @@ router.get("/:id", (req: Request<IdParam>, res: Response<Fruit>) => {
   }
 });
 
-// GET /    Request<URL-parameter, response type, body type>
+// POST /    Request<URL-parameter, response type, body type>
 router.post("/", (req: Request<{}, void | ErrorRes, Fruit>, res) => {
   // Vi vet inte vad vi faktiskt får i body - måste validera det
   try {
