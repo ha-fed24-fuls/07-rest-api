@@ -10,6 +10,7 @@ interface Fruit {
   price: number;
 }
 
+// Skicka ett meddelande om något går fel med requestet
 type ErrorRes = { error: string };
 
 // TODO: lägg till striktare regler. T.ex minst två tecken i namnet, inga negativa priser osv.
@@ -25,13 +26,17 @@ let data: Fruit[] = [
   { id: "q3", name: "melon", price: 20 },
 ];
 
-router.get("/", (req, res) => {
-  res.send(data);
-});
 interface IdParam {
   id: string;
 }
 
+
+// GET /    (lägg till "/fruits/" först på alla URL)
+router.get("/", (req, res: Response<Fruit[]>) => {
+  res.send(data);
+});
+
+// GET /:id  URL-parameter
 router.get("/:id", (req: Request<IdParam>, res: Response<Fruit>) => {
   const id: string = req.params.id;
   const maybeFruit: Fruit | undefined = data.find((fruit) => fruit.id === id);
@@ -43,18 +48,24 @@ router.get("/:id", (req: Request<IdParam>, res: Response<Fruit>) => {
   }
 });
 
-router.post("/", (req: Request<{}, void, Fruit>, res) => {
+// GET /    Request<URL-parameter, response type, body type>
+router.post("/", (req: Request<{}, void | ErrorRes, Fruit>, res) => {
   // Vi vet inte vad vi faktiskt får i body - måste validera det
   try {
     let newFruit: Fruit = FruitSchema.parse(req.body);
     data.push(newFruit);
     res.sendStatus(201); // 201 Created, resurs skapad på servern
   } catch (error) {
-    res.sendStatus(400); // 400 Bad request, dåligt utformat request eftersom det inte är ett korrekt frukt-objekt
+    let message: ErrorRes = {
+      error: 'Send a valid Fruit object.'
+    }
+    res.status(400).send(message)
+    // 400 Bad request, dåligt utformat request eftersom det inte är ett korrekt frukt-objekt
   }
 });
 
-router.delete("/:id", (req: Request<IdParam>, res: Response<void>) => {
+// DELETE /id   välj ut med URL-parameter
+router.delete("/:id", (req: Request<IdParam>, res: Response<void | ErrorRes>) => {
   const id: string = req.params.id;
   const maybeFruit: Fruit | undefined = data.find((fruit) => fruit.id === id);
 
@@ -62,7 +73,8 @@ router.delete("/:id", (req: Request<IdParam>, res: Response<void>) => {
     data = data.filter((fruit) => fruit.id !== id);
     res.sendStatus(200); // 200 OK
   } else {
-    res.sendStatus(404); // 404 Not found, det fanns ingen frukt med detta id
+    res.status(404).send({ error: 'Id does not match any fruit.' })
+    // 404 Not found, det fanns ingen frukt med detta id
   }
 });
 
@@ -76,14 +88,16 @@ router.delete("/:id", (req: Request<IdParam>, res: Response<void>) => {
 router.put(
   "/:id",
   (
-    req: Request<{ id: string }, Fruit | ErrorRes, Fruit>,
+    //  Request< URL-parameter, response type, body type>
+    req: Request<IdParam, Fruit | ErrorRes, Fruit>,
     res: Response<Fruit | ErrorRes>
   ) => {
     const id = req.params.id;
 
     const index = data.findIndex((fruit) => fruit.id === id);
-
+    // findIndex returnerar -1 om den inte hittar något matchande element
     if (index === -1) {
+      // För nyare versioner av Express gör .send och .json samma sak
       return res.status(404).json({ error: "Fruit not found in the DB" });
     }
 
@@ -122,5 +136,11 @@ router.put(
     return res.status(200).json(updated);
   }
 );
+
+/*
+const response = await fetch(url, { method: 'PUT', body: myBody })
+if( response.status === 204 ) ...
+*/
+
 
 export default router;
